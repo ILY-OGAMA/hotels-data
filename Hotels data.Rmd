@@ -1,0 +1,177 @@
+---
+title: "Hotel Bookings"
+author: "illy"
+date: "11/26/2021"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+# Prepare
+## Import libraries
+```{r}
+library(tidyverse)
+library(skimr)
+library(janitor)
+library(lubridate)
+library(dplyr)
+getwd()
+```
+
+# Process
+## Load the data set
+```{r}
+hotels <- read.csv("hotel_bookings.csv")
+```
+
+## Inspect the data
+```{r}
+glimpse(hotels)
+colnames(hotels)
+str(hotels)
+```
+
+## Conduct summary ststistics
+```{r}
+hotels %>%
+  summarise(average_lead_time = mean(lead_time),
+            max_lead_time = max(lead_time),
+            min_lead_time = min(lead_time))
+```
+
+# Analyze 
+## Total bookings per hotel type
+```{r}
+hotels %>%
+  group_by(hotel, is_canceled) %>%
+  filter(is_canceled == 0) %>%
+  summarise(bookings = n(), .groups = 'drop')
+```
+## Order the months
+```{r}
+hotels$arrival_date_month <- ordered(hotels$arrival_date_month, 
+                                     levels = c('January','February','March','April',
+                                                'May','June','July','August','September',
+        'October','November','December'))
+```
+## Order the days
+```{r}
+hotels$arrival_date_day_of_month <- ordered(hotels$arrival_date_day_of_month, 
+                                            levels = c('Monday','Tuesday','Wednesday',
+                                                       'Thursday','Friday','Saturday',
+                                                       'Sunday'))
+```
+
+## Number of bookings by month
+```{r}
+hotels %>%
+  group_by(is_canceled, arrival_date_month) %>%
+  filter(is_canceled == 0) %>%
+  summarise(num_of_bookings = n(), .groups = 'drop') %>%
+  arrange(arrival_date_month)
+```
+
+## Number of bookings by day
+```{r}
+hotels %>%
+  group_by(is_canceled, arrival_date_day_of_month) %>%
+  filter(is_canceled == 0) %>%
+  summarise(bookings_per_day = n(), .groups = 'drop') %>%
+  arrange(arrival_date_day_of_month)
+```
+
+## Lead time by hotel type
+```{r}
+hotels %>%
+  group_by(hotel)%>%
+  summarise(average_lead_time = mean(lead_time), .groups = 'drop')
+```
+
+## Hotel type booking by month
+```{r}
+hotels %>%
+  filter(is_canceled == 0) %>%
+  group_by(hotel, is_canceled, arrival_date_month) %>%
+  summarise(booking_per_hotel = n(), .groups = 'drop') %>%
+  arrange(arrival_date_month)
+```
+
+## Filter the hotel types into different data frames
+```{r}
+city_hotel <- filter(hotels, hotels$hotel == "City Hotel")
+resort <- filter(hotels, hotels$hotel == "Resort Hotel")
+```
+
+# Further analysis with visualization
+## People with children check in lead time
+```{r}
+ggplot(data=hotels)+
+  geom_point(mapping = aes(x=lead_time,y=children))
+
+```
+
+## People with children weekend stay
+```{r}
+ggplot(data=hotels)+
+  geom_point(mapping = aes(x=stays_in_weekend_nights, y=children))
+```
+
+## Distribution channel
+```{r}
+ggplot(data = hotels) +
+  geom_bar(mapping = aes(x = distribution_channel))
+```
+
+## Market segment distribution channel
+```{r}
+ggplot(data = hotels) +
+  geom_bar(mapping = aes(x = distribution_channel, fill=market_segment))
+```
+
+## Distribution channel by deposit type
+```{r}
+ggplot(data = hotels) +
+  geom_bar(mapping = aes(x = distribution_channel)) +
+  facet_grid(~deposit_type) +
+  theme(axis.text.x = element_text(angle = 45))
+```
+
+## Market segment by hotel type
+```{r}
+ggplot(data = hotels) +
+  geom_bar(mapping = aes(x = hotel, fill = market_segment))
+```
+
+## Market segment
+```{r}
+ggplot(data = hotels) +
+  geom_bar(mapping = aes(x = hotel)) +
+  facet_wrap(~market_segment)
+```
+
+## Online TA market segment 
+```{r}
+onlineta_city_hotels_v2 <- hotels %>%
+  filter(hotel=="City Hotel") %>%
+  filter(market_segment=="Online TA")
+```
+
+## Minimum and maximum dates 
+```{r}
+mindate <- min(hotels$arrival_date_year)
+maxdate <- max(hotels$arrival_date_year)
+```
+
+## Market segment comparison by hotel 
+```{r}
+ggplot(data = hotels) +
+  geom_bar(mapping = aes(x = market_segment)) +
+  facet_wrap(~hotel) +
+  theme(axis.text.x = element_text(angle = 45)) +
+  labs(title="Comparison of market segments by hotel type for hotel bookings",
+       caption=paste0("Data from: ", mindate, " to ", maxdate),
+       x="Market Segment",
+       y="Number of Bookings")
+```
+
